@@ -183,17 +183,17 @@ volumeSeries.priceScale().applyOptions({
   scaleMargins: { top: 0.8, bottom: 0 },
 });
 
-// WT panel series
+// WT panel series — WT1 filled area, WT2 plain line on top
 const wt1Area = addArea(wtChart, {
-  topColor:    '#4994ec44',
+  topColor:    'rgba(73,148,236,0.30)',
   bottomColor: 'rgba(73,148,236,0)',
-  lineColor:   '#4994ec',
+  lineColor:   'rgba(73,148,236,0.9)',
   lineWidth:   1,
   priceLineVisible: false,
   lastValueVisible: false,
 });
 const wt2Series = addLine(wtChart, {
-  color: '#7d6cff',
+  color: 'rgba(255,255,255,0.5)',
   lineWidth: 1,
   priceLineVisible: false,
   lastValueVisible: false,
@@ -204,20 +204,26 @@ const wtVwapSeries = addLine(wtChart, {
   priceLineVisible: false,
   lastValueVisible: false,
 });
+// MFI shares the WT price scale and is compressed into [-99, -95] so it
+// renders as a thin band at the bottom of the WT panel.
 const mfiSeries = addHist(wtChart, {
-  priceScaleId: '',
+  priceScaleId: 'right',
   priceLineVisible: false,
   lastValueVisible: false,
-});
-mfiSeries.priceScale().applyOptions({
-  scaleMargins: { top: 0.0, bottom: 0.0 },
+  base: -97,
 });
 
-// Horizontal reference lines on WT panel (drawn on wt2Series)
-[ OB_LEVEL, OB_LEVEL2, OS_LEVEL, OS_LEVEL2 ].forEach(level => {
+// Horizontal reference lines on WT panel (drawn on wt2Series).
+// ±53 = mid OB/OS, brighter. ±60 = strong OB/OS, dimmer.
+[
+  { level: OB_LEVEL,  opacity: 0.4 },
+  { level: OB_LEVEL2, opacity: 0.2 },
+  { level: OS_LEVEL,  opacity: 0.4 },
+  { level: OS_LEVEL2, opacity: 0.2 },
+].forEach(({ level, opacity }) => {
   wt2Series.createPriceLine({
     price: level,
-    color: 'rgba(255,255,255,0.3)',
+    color: `rgba(255,255,255,${opacity})`,
     lineWidth: 1,
     lineStyle: 2, // dashed
     axisLabelVisible: false,
@@ -434,13 +440,19 @@ async function loadAndRender() {
   wt2Series.setData(wt2Data);
   wtVwapSeries.setData(wtVwapData);
 
-  // MFI
+  // MFI — compress into [-99, -95] band so it sits at the bottom of the WT
+  // panel without overlapping the WT lines. Centered at -97, amplitude ±2.
   const mfi = calcMFI(o, h, l, c, MFI_PERIOD, MFI_MULTIPLIER, MFI_POS_Y);
-  const mfiData = t.map((ts, i) => ({
-    time: ts,
-    value: mfi[i],
-    color: mfi[i] >= 0 ? '#3ee14588' : '#ff3d2e88',
-  })).filter(p => !isNaN(p.value));
+  const maxAbsMfi = mfi.reduce((m, v) => isNaN(v) ? m : Math.max(m, Math.abs(v)), 0) || 1;
+  const mfiData = t.map((ts, i) => {
+    const v = mfi[i];
+    if (isNaN(v)) return null;
+    return {
+      time: ts,
+      value: -97 + (v / maxAbsMfi) * 2,
+      color: v >= 0 ? '#3ee14588' : '#ff3d2e88',
+    };
+  }).filter(Boolean);
   mfiSeries.setData(mfiData);
 
   // Buy/Sell signals
