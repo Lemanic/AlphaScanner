@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AlphaScanner</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">AlphaScanner</div>
+    <div class="controls">
+      <label>
+        Subnet
+        <select id="symbol">
+          <option value="TAO">TAO</option>
+          <option value="SUB-1">SUB-1</option>
+          <option value="SUB-4" selected>SUB-4</option>
+          <option value="SUB-8">SUB-8</option>
+          <option value="SUB-19">SUB-19</option>
+          <option value="SUB-62">SUB-62</option>
+        </select>
+      </label>
+      <label>
+        Resolution
+        <select id="resolution">
+          <option value="1">1m</option>
+          <option value="5">5m</option>
+          <option value="15">15m</option>
+          <option value="60" selected>1h</option>
+          <option value="240">4h</option>
+          <option value="1D">1D</option>
+        </select>
+      </label>
+      <span id="status" class="status"></span>
+    </div>
+  </header>
+
+  <main class="panels">
+    <div id="price-panel" class="panel price"></div>
+    <div id="wt-panel"    class="panel wt"></div>
+    <div id="rsi-panel"   class="panel rsi"></div>
+  </main>
+
+  <script src="chart.js"></script>
+</body>
+</html>
