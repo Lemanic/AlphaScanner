@@ -551,8 +551,8 @@ async function loadAndRender() {
   // Buy/Sell signals
   const signals = detectSignals(wt1, wt2);
   const markers = signals.map(s => s.type === 'buy'
-    ? { time: t[s.index], position: 'belowBar', color: '#00e676', shape: 'circle', text: 'B', size: 0.8 }
-    : { time: t[s.index], position: 'aboveBar', color: '#ff5252', shape: 'circle', text: 'S', size: 0.8 }
+    ? { time: t[s.index], position: 'belowBar', color: '#00e676', shape: 'circle', text: '', size: 0.8 }
+    : { time: t[s.index], position: 'aboveBar', color: '#ff5252', shape: 'circle', text: '', size: 0.8 }
   );
   setMarkers(wt2Series, markers);
 
