@@ -12,12 +12,137 @@ html, body {
   overflow: hidden;
 }
 
-body {
+body { height: 100vh; }
+
+.app {
   display: flex;
-  flex-direction: column;
+  width: 100vw;
   height: 100vh;
+  position: relative;
 }
 
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+}
+
+/* ----- Sidebar ---------------------------------------------------------- */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: #1a1d2e;
+  border-right: 1px solid #2a2e39;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease, min-width 0.2s ease;
+  overflow: hidden;
+  height: 100%;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right-width: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #2a2e39;
+  flex: 0 0 auto;
+}
+
+.sidebar-title {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  color: #ffffff;
+}
+
+.sidebar-search {
+  padding: 10px 14px;
+  flex: 0 0 auto;
+}
+
+.sidebar-search input {
+  width: 100%;
+  background: #131722;
+  border: 1px solid #2a2e39;
+  color: #d1d4dc;
+  padding: 6px 10px;
+  border-radius: 3px;
+  font-size: 12px;
+  outline: none;
+}
+.sidebar-search input:focus { border-color: #4994ec; }
+
+.subnet-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-bottom: 10px;
+}
+
+.sidebar-loading,
+.sidebar-error {
+  padding: 14px;
+  color: #9aa0a6;
+  font-size: 12px;
+}
+.sidebar-error .error-retry {
+  margin-top: 10px;
+  background: #ffffff;
+  color: #5c1f1f;
+  border: none;
+  padding: 4px 14px;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sidebar-empty {
+  padding: 14px;
+  color: #787b86;
+  font-size: 12px;
+  text-align: center;
+}
+
+.subnet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+}
+.subnet-row:hover { background: #252836; }
+.subnet-row.active {
+  background: #1e2d4a;
+  border-left-color: #4994ec;
+}
+
+.netuid-badge {
+  font-size: 11px;
+  color: #787b86;
+  min-width: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.subnet-name {
+  font-size: 13px;
+  color: #d1d4dc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----- Topbar ----------------------------------------------------------- */
 .topbar {
   display: flex;
   align-items: center;
@@ -26,6 +151,14 @@ body {
   background: #1c2030;
   border-bottom: 1px solid #2a2e39;
   flex: 0 0 auto;
+  gap: 16px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .brand {
@@ -34,12 +167,20 @@ body {
   color: #ffffff;
 }
 
+.current-symbol {
+  color: #9aa0a6;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .controls {
   display: flex;
   align-items: center;
   gap: 16px;
 }
-
 .controls label {
   display: flex;
   align-items: center;
@@ -47,7 +188,6 @@ body {
   color: #9aa0a6;
   font-size: 12px;
 }
-
 .controls select {
   background: #131722;
   color: #d1d4dc;
@@ -57,10 +197,7 @@ body {
   font-size: 12px;
   outline: none;
 }
-
-.controls select:focus {
-  border-color: #4994ec;
-}
+.controls select:focus { border-color: #4994ec; }
 
 .status {
   color: #9aa0a6;
@@ -68,16 +205,30 @@ body {
   min-width: 120px;
   text-align: right;
 }
-
-.status.error { color: #ef5350; }
+.status.error   { color: #ef5350; }
 .status.loading { color: #4994ec; }
 
+.icon-btn {
+  background: transparent;
+  border: 1px solid #2a2e39;
+  color: #d1d4dc;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.icon-btn:hover { background: #252836; }
+.hamburger { font-size: 16px; }
+
+/* ----- Chart panels ----------------------------------------------------- */
 .panels {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .panel {
@@ -86,29 +237,25 @@ body {
   position: relative;
   border-bottom: 1px solid #1f2330;
 }
-
 .panel:last-child { border-bottom: none; }
-
 .panel.price { flex: 60; }
 .panel.wt    { flex: 25; }
 .panel.rsi   { flex: 15; }
 
-/* Error overlay -- covers the chart panels area, not the topbar */
-.error-overlay {
+/* ----- Overlays --------------------------------------------------------- */
+.error-overlay,
+.info-overlay {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(19, 23, 34, 0.72);
-  backdrop-filter: blur(2px);
   z-index: 50;
-  pointer-events: auto;
 }
-
-.error-overlay[hidden] { display: none; }
-
-.panels { position: relative; }
+.error-overlay { background: rgba(19, 23, 34, 0.72); backdrop-filter: blur(2px); }
+.info-overlay  { background: rgba(19, 23, 34, 0.65); }
+.error-overlay[hidden],
+.info-overlay[hidden] { display: none; }
 
 .error-card {
   min-width: 320px;
@@ -121,32 +268,36 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   text-align: center;
 }
-
-.error-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  letter-spacing: 0.3px;
-}
-
-.error-detail {
-  font-size: 12px;
-  color: #f6cfcf;
-  margin-bottom: 14px;
-  word-break: break-word;
-  white-space: pre-wrap;
-}
-
+.error-title  { font-size: 14px; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.3px; }
+.error-detail { font-size: 12px; color: #f6cfcf; margin-bottom: 14px; word-break: break-word; white-space: pre-wrap; }
 .error-retry {
-  background: #ffffff;
-  color: #5c1f1f;
-  border: none;
-  border-radius: 3px;
-  padding: 6px 18px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
+  background: #ffffff; color: #5c1f1f; border: none; border-radius: 3px;
+  padding: 6px 18px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
-
 .error-retry:hover { background: #f0f0f0; }
 .error-retry:active { transform: translateY(1px); }
+
+.info-card {
+  padding: 16px 22px;
+  background: #1c2030;
+  border: 1px solid #2a2e39;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #d1d4dc;
+  max-width: 520px;
+  text-align: center;
+}
+
+/* ----- Mobile ----------------------------------------------------------- */
+@media (max-width: 767px) {
+  .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.5);
+  }
+  .current-symbol { font-size: 11px; }
+  .status { min-width: 0; }
+}

@@ -291,7 +291,24 @@ function resizeAll() {
 window.addEventListener('resize', resizeAll);
 resizeAll();
 
-// ----- Data fetching --------------------------------------------------------
+// Re-fit charts when their container width changes (e.g. sidebar toggle).
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => resizeAll());
+  [priceEl, wtEl, rsiEl].forEach(el => ro.observe(el));
+}
+
+// ----- App state ------------------------------------------------------------
+const state = {
+  symbol: null,         // e.g. "SUB-4"
+  netuid: null,         // e.g. 4
+  subnetName: null,     // e.g. "Targon"
+  subnets: [],          // [{netuid, name, symbol}]
+};
+
+const DEFAULT_NETUID = 4;
+const MOBILE_MQ = window.matchMedia('(max-width: 767px)');
+
+// ----- Status / overlays ----------------------------------------------------
 function setStatus(text, cls = '') {
   statusEl.textContent = text;
   statusEl.className = 'status ' + cls;
@@ -301,24 +318,31 @@ const errorOverlay = document.getElementById('error-overlay');
 const errorTitle   = document.getElementById('error-title');
 const errorDetail  = document.getElementById('error-detail');
 const errorRetry   = document.getElementById('error-retry');
+const infoOverlay  = document.getElementById('info-overlay');
+const infoDetail   = document.getElementById('info-detail');
 
 function showError(symbol, message) {
   errorTitle.textContent = `Failed to load ${symbol}`;
   errorDetail.textContent = message;
   errorOverlay.hidden = false;
+  infoOverlay.hidden = true;
 }
+function hideError() { errorOverlay.hidden = true; }
 
-function hideError() {
+function showInfo(message) {
+  infoDetail.textContent = message;
+  infoOverlay.hidden = false;
   errorOverlay.hidden = true;
 }
+function hideInfo() { infoOverlay.hidden = true; }
 
 errorRetry.addEventListener('click', () => {
   hideError();
   loadAndRender();
 });
 
+// ----- Fetch helpers --------------------------------------------------------
 async function fetchBars(symbol, resolution) {
-  // Pick a `from` window sized to give ~500-1000 candles for the resolution.
   const now = Math.floor(Date.now() / 1000);
   const secPerBar = resolutionToSeconds(resolution);
   const lookbackBars = 1000;
@@ -329,6 +353,15 @@ async function fetchBars(symbol, resolution) {
   if (!r.ok) {
     const body = await r.json().catch(() => ({}));
     throw new Error(body.errmsg || `HTTP ${r.status}`);
+  }
+  return await r.json();
+}
+
+async function fetchSubnets() {
+  const r = await fetch('/api/subnets');
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body.error || `HTTP ${r.status}`);
   }
   return await r.json();
 }
@@ -406,11 +439,29 @@ function renderRSI(times, rsiVals) {
   }
 }
 
+function resolutionLabel() {
+  const sel = document.getElementById('resolution');
+  return sel.options[sel.selectedIndex].textContent;
+}
+
+function updateHeaderLabel() {
+  const labelEl = document.getElementById('current-symbol');
+  const res = resolutionLabel();
+  if (state.netuid !== null && state.subnetName) {
+    labelEl.textContent = `SN${state.netuid} — ${state.subnetName} | ${res}`;
+  } else {
+    labelEl.textContent = `— | ${res}`;
+  }
+}
+
 async function loadAndRender() {
-  const symbol = document.getElementById('symbol').value;
+  const symbol = state.symbol;
+  if (!symbol) return;
   const resolution = document.getElementById('resolution').value;
+  updateHeaderLabel();
   setStatus('loading…', 'loading');
   hideError();
+  hideInfo();
 
   let data;
   try {
@@ -421,9 +472,20 @@ async function loadAndRender() {
     return;
   }
 
-  if (!data || data.s !== 'ok' || !Array.isArray(data.t) || data.t.length === 0) {
-    setStatus('no data', 'error');
-    showError(symbol, 'No data returned from upstream.');
+  const hasData = data
+    && data.s === 'ok'
+    && Array.isArray(data.t)
+    && data.t.length > 0;
+  const isNoData = data && (data.s === 'no_data' || (data.s === 'ok' && Array.isArray(data.t) && data.t.length === 0));
+
+  if (isNoData) {
+    setStatus('no data');
+    showInfo('No price data available for this subnet yet.');
+    return;
+  }
+  if (!hasData) {
+    setStatus('error', 'error');
+    showError(symbol, (data && data.errmsg) || 'Unexpected response from upstream.');
     return;
   }
 
@@ -498,9 +560,97 @@ async function loadAndRender() {
   setStatus(`${symbol} • ${resolution} • ${t.length} bars`);
 }
 
-// ----- Wire up controls -----------------------------------------------------
-document.getElementById('symbol').addEventListener('change', loadAndRender);
-document.getElementById('resolution').addEventListener('change', loadAndRender);
+// ----- Sidebar --------------------------------------------------------------
+const sidebar       = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebarClose  = document.getElementById('sidebar-collapse');
+const subnetList    = document.getElementById('subnet-list');
+const subnetSearch  = document.getElementById('subnet-search');
 
-// Initial load
-loadAndRender();
+function renderSubnetList(query = '') {
+  const q = query.trim().toLowerCase();
+  const rows = state.subnets
+    .filter(s => {
+      if (!q) return true;
+      return s.name.toLowerCase().includes(q) || String(s.netuid).includes(q);
+    })
+    .map(s => {
+      const active = s.symbol === state.symbol ? ' active' : '';
+      return `<div class="subnet-row${active}" data-symbol="${s.symbol}" data-netuid="${s.netuid}" data-name="${escapeHtml(s.name)}">
+        <span class="netuid-badge">${s.netuid}</span>
+        <span class="subnet-name">${escapeHtml(s.name)}</span>
+      </div>`;
+    })
+    .join('');
+
+  subnetList.innerHTML = rows || '<div class="sidebar-empty">No matches</div>';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+function setActiveFromRow(row) {
+  state.symbol     = row.dataset.symbol;
+  state.netuid     = parseInt(row.dataset.netuid, 10);
+  state.subnetName = row.dataset.name;
+  // Re-render active highlighting without losing scroll position
+  subnetList.querySelectorAll('.subnet-row').forEach(el => {
+    el.classList.toggle('active', el.dataset.symbol === state.symbol);
+  });
+  if (MOBILE_MQ.matches) sidebar.classList.add('collapsed');
+  loadAndRender();
+}
+
+subnetList.addEventListener('click', e => {
+  const row = e.target.closest('.subnet-row');
+  if (row) setActiveFromRow(row);
+});
+
+subnetSearch.addEventListener('input', e => renderSubnetList(e.target.value));
+
+sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
+sidebarClose.addEventListener('click',  () => sidebar.classList.add('collapsed'));
+
+async function loadSubnetsIntoSidebar() {
+  subnetList.innerHTML = '<div class="sidebar-loading">Loading subnets…</div>';
+  let list;
+  try {
+    list = await fetchSubnets();
+  } catch (e) {
+    subnetList.innerHTML =
+      `<div class="sidebar-error">Failed to load subnets.<br><span style="color:#f6cfcf">${escapeHtml(e.message)}</span><br>
+       <button class="error-retry" type="button" id="subnets-retry">Retry</button></div>`;
+    document.getElementById('subnets-retry').addEventListener('click', loadSubnetsIntoSidebar);
+    return;
+  }
+  state.subnets = list;
+
+  // Pick the default subnet: prefer DEFAULT_NETUID, else first entry.
+  const pick = list.find(s => s.netuid === DEFAULT_NETUID) || list[0];
+  if (pick) {
+    state.symbol = pick.symbol;
+    state.netuid = pick.netuid;
+    state.subnetName = pick.name;
+  }
+  renderSubnetList(subnetSearch.value);
+  if (pick) loadAndRender();
+}
+
+// ----- Resolution control + mobile defaults --------------------------------
+document.getElementById('resolution').addEventListener('change', () => {
+  updateHeaderLabel();
+  loadAndRender();
+});
+
+if (MOBILE_MQ.matches) sidebar.classList.add('collapsed');
+MOBILE_MQ.addEventListener('change', e => {
+  if (e.matches) sidebar.classList.add('collapsed');
+  else sidebar.classList.remove('collapsed');
+});
+
+// ----- Boot -----------------------------------------------------------------
+updateHeaderLabel();
+loadSubnetsIntoSidebar();

@@ -2,53 +2,68 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AlphaScanner</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">AlphaScanner</div>
-    <div class="controls">
-      <label>
-        Subnet
-        <select id="symbol">
-          <option value="TAO">TAO</option>
-          <option value="SUB-1">SUB-1</option>
-          <option value="SUB-4" selected>SUB-4</option>
-          <option value="SUB-8">SUB-8</option>
-          <option value="SUB-19">SUB-19</option>
-          <option value="SUB-62">SUB-62</option>
-        </select>
-      </label>
-      <label>
-        Resolution
-        <select id="resolution">
-          <option value="1">1m</option>
-          <option value="5">5m</option>
-          <option value="15">15m</option>
-          <option value="60" selected>1h</option>
-          <option value="240">4h</option>
-          <option value="1D">1D</option>
-        </select>
-      </label>
-      <span id="status" class="status"></span>
-    </div>
-  </header>
-
-  <main class="panels">
-    <div id="price-panel" class="panel price"></div>
-    <div id="wt-panel"    class="panel wt"></div>
-    <div id="rsi-panel"   class="panel rsi"></div>
-
-    <div id="error-overlay" class="error-overlay" hidden>
-      <div class="error-card">
-        <div class="error-title" id="error-title">Failed to load</div>
-        <div class="error-detail" id="error-detail"></div>
-        <button id="error-retry" class="error-retry" type="button">Retry</button>
+  <div class="app">
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">⚡ Alpha Subnets</span>
+        <button id="sidebar-collapse" class="icon-btn" type="button" title="Collapse">‹</button>
       </div>
+      <div class="sidebar-search">
+        <input id="subnet-search" type="search" placeholder="Search subnet..." autocomplete="off" />
+      </div>
+      <div id="subnet-list" class="subnet-list">
+        <div class="sidebar-loading">Loading subnets…</div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="icon-btn hamburger" type="button" title="Toggle sidebar">☰</button>
+          <span class="brand">AlphaScanner</span>
+          <span class="current-symbol" id="current-symbol">—</span>
+        </div>
+        <div class="controls">
+          <label>
+            Resolution
+            <select id="resolution">
+              <option value="1">1m</option>
+              <option value="5">5m</option>
+              <option value="15">15m</option>
+              <option value="60" selected>1h</option>
+              <option value="240">4h</option>
+              <option value="1D">1D</option>
+            </select>
+          </label>
+          <span id="status" class="status"></span>
+        </div>
+      </header>
+
+      <main class="panels">
+        <div id="price-panel" class="panel price"></div>
+        <div id="wt-panel"    class="panel wt"></div>
+        <div id="rsi-panel"   class="panel rsi"></div>
+
+        <div id="info-overlay" class="info-overlay" hidden>
+          <div class="info-card" id="info-detail"></div>
+        </div>
+
+        <div id="error-overlay" class="error-overlay" hidden>
+          <div class="error-card">
+            <div class="error-title" id="error-title">Failed to load</div>
+            <div class="error-detail" id="error-detail"></div>
+            <button id="error-retry" class="error-retry" type="button">Retry</button>
+          </div>
+        </div>
+      </main>
     </div>
-  </main>
+  </div>
 
   <script src="chart.js"></script>
 </body>
