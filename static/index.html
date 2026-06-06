@@ -40,6 +40,14 @@
     <div id="price-panel" class="panel price"></div>
     <div id="wt-panel"    class="panel wt"></div>
     <div id="rsi-panel"   class="panel rsi"></div>
+
+    <div id="error-overlay" class="error-overlay" hidden>
+      <div class="error-card">
+        <div class="error-title" id="error-title">Failed to load</div>
+        <div class="error-detail" id="error-detail"></div>
+        <button id="error-retry" class="error-retry" type="button">Retry</button>
+      </div>
+    </div>
   </main>
 
   <script src="chart.js"></script>

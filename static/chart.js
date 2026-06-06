@@ -297,6 +297,26 @@ function setStatus(text, cls = '') {
   statusEl.className = 'status ' + cls;
 }
 
+const errorOverlay = document.getElementById('error-overlay');
+const errorTitle   = document.getElementById('error-title');
+const errorDetail  = document.getElementById('error-detail');
+const errorRetry   = document.getElementById('error-retry');
+
+function showError(symbol, message) {
+  errorTitle.textContent = `Failed to load ${symbol}`;
+  errorDetail.textContent = message;
+  errorOverlay.hidden = false;
+}
+
+function hideError() {
+  errorOverlay.hidden = true;
+}
+
+errorRetry.addEventListener('click', () => {
+  hideError();
+  loadAndRender();
+});
+
 async function fetchBars(symbol, resolution) {
   // Pick a `from` window sized to give ~500-1000 candles for the resolution.
   const now = Math.floor(Date.now() / 1000);
@@ -390,17 +410,20 @@ async function loadAndRender() {
   const symbol = document.getElementById('symbol').value;
   const resolution = document.getElementById('resolution').value;
   setStatus('loading…', 'loading');
+  hideError();
 
   let data;
   try {
     data = await fetchBars(symbol, resolution);
   } catch (e) {
-    setStatus('error: ' + e.message, 'error');
+    setStatus('error', 'error');
+    showError(symbol, e.message);
     return;
   }
 
   if (!data || data.s !== 'ok' || !Array.isArray(data.t) || data.t.length === 0) {
     setStatus('no data', 'error');
+    showError(symbol, 'No data returned from upstream.');
     return;
   }
 

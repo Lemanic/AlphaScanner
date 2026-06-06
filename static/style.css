@@ -92,3 +92,61 @@ body {
 .panel.price { flex: 60; }
 .panel.wt    { flex: 25; }
 .panel.rsi   { flex: 15; }
+
+/* Error overlay -- covers the chart panels area, not the topbar */
+.error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(19, 23, 34, 0.72);
+  backdrop-filter: blur(2px);
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.error-overlay[hidden] { display: none; }
+
+.panels { position: relative; }
+
+.error-card {
+  min-width: 320px;
+  max-width: 520px;
+  padding: 20px 24px;
+  background: #5c1f1f;
+  border: 1px solid #8a2a2a;
+  border-radius: 6px;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.error-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.error-detail {
+  font-size: 12px;
+  color: #f6cfcf;
+  margin-bottom: 14px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.error-retry {
+  background: #ffffff;
+  color: #5c1f1f;
+  border: none;
+  border-radius: 3px;
+  padding: 6px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error-retry:hover { background: #f0f0f0; }
+.error-retry:active { transform: translateY(1px); }

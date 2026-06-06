@@ -36,12 +36,19 @@ def bars():
         "Authorization": API_KEY,
         "accept": "application/json",
     }
+
+    # Bittensor's root token TAO is represented as subnet 0 on the same
+    # dtao endpoint that serves alpha tokens. The dropdown sends "TAO";
+    # rewrite to SUB-0 for the upstream call.
+    upstream_symbol = "SUB-0" if symbol == "TAO" else symbol
     params = {
-        "symbol": symbol,
+        "symbol": upstream_symbol,
         "resolution": resolution,
         "from": frm,
         "to": to,
     }
+
+    print(f"[bars] symbol={symbol!r} -> {TAOSTATS_URL} params={params}", flush=True)
 
     try:
         r = requests.get(TAOSTATS_URL, headers=headers, params=params, timeout=REQUEST_TIMEOUT)
