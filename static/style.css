@@ -238,8 +238,8 @@ body { height: 100vh; }
   border-bottom: 1px solid #1f2330;
 }
 .panel:last-child { border-bottom: none; }
-.panel.price { flex: 60; }
-.panel.wt    { flex: 25; }
+.panel.price { flex: 55; }
+.panel.wt    { flex: 30; }
 .panel.rsi   { flex: 15; }
 
 /* ----- Overlays --------------------------------------------------------- */

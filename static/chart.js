@@ -183,49 +183,58 @@ volumeSeries.priceScale().applyOptions({
   scaleMargins: { top: 0.8, bottom: 0 },
 });
 
-// WT panel series — WT1 filled area, WT2 plain line on top
+// WT panel series — MFI first so WT lines render on top.
+// MFI gets its own overlay scale (confined to bottom 18% of the WT panel)
+// so it doesn't distort the WT price axis. Values remain unscaled.
+const mfiSeries = addHist(wtChart, {
+  priceScaleId: 'mfi',
+  priceLineVisible: false,
+  lastValueVisible: false,
+  base: 0,
+});
+mfiSeries.priceScale().applyOptions({
+  scaleMargins: { top: 0.88, bottom: 0 },
+});
+
+// WT1: thin line with subtle area fill (spec: AreaSeries, topColor/bottomColor).
 const wt1Area = addArea(wtChart, {
-  topColor:    'rgba(73,148,236,0.30)',
-  bottomColor: 'rgba(73,148,236,0)',
-  lineColor:   'rgba(73,148,236,0.9)',
+  lineColor:   '#4994ec',
   lineWidth:   1,
+  topColor:    'rgba(73, 148, 236, 0.35)',
+  bottomColor: 'rgba(73, 148, 236, 0.05)',
   priceLineVisible: false,
   lastValueVisible: false,
 });
+
+// WT2: plain line on top of WT1 fill, slightly heavier weight.
 const wt2Series = addLine(wtChart, {
-  color: 'rgba(255,255,255,0.5)',
+  color:     'rgba(255, 255, 255, 0.6)',
+  lineWidth: 1.5,
+  priceLineVisible: false,
+  lastValueVisible: false,
+});
+
+const wtVwapSeries = addLine(wtChart, {
+  color:     'rgba(255, 255, 255, 0.35)',
   lineWidth: 1,
   priceLineVisible: false,
   lastValueVisible: false,
 });
-const wtVwapSeries = addLine(wtChart, {
-  color: '#ffffff88',
-  lineWidth: 2,
-  priceLineVisible: false,
-  lastValueVisible: false,
-});
-// MFI shares the WT price scale and is compressed into [-99, -95] so it
-// renders as a thin band at the bottom of the WT panel.
-const mfiSeries = addHist(wtChart, {
-  priceScaleId: 'right',
-  priceLineVisible: false,
-  lastValueVisible: false,
-  base: -97,
-});
 
-// Horizontal reference lines on WT panel (drawn on wt2Series).
-// ±53 = mid OB/OS, brighter. ±60 = strong OB/OS, dimmer.
+// Reference lines: zero baseline + OB/OS levels (blue family overbought,
+// red family oversold — matching TradingView original colours).
 [
-  { level: OB_LEVEL,  opacity: 0.4 },
-  { level: OB_LEVEL2, opacity: 0.2 },
-  { level: OS_LEVEL,  opacity: 0.4 },
-  { level: OS_LEVEL2, opacity: 0.2 },
-].forEach(({ level, opacity }) => {
+  { level:          0, color: 'rgba(255, 255, 255, 0.3)'  },
+  { level:  OB_LEVEL,  color: 'rgba(100, 100, 180, 0.5)'  },
+  { level:  OB_LEVEL2, color: 'rgba(100, 100, 180, 0.3)'  },
+  { level:  OS_LEVEL,  color: 'rgba(180, 100, 100, 0.5)'  },
+  { level:  OS_LEVEL2, color: 'rgba(180, 100, 100, 0.3)'  },
+].forEach(({ level, color }) => {
   wt2Series.createPriceLine({
     price: level,
-    color: `rgba(255,255,255,${opacity})`,
+    color,
     lineWidth: 1,
-    lineStyle: 2, // dashed
+    lineStyle: 2,
     axisLabelVisible: false,
     title: '',
   });
@@ -367,12 +376,13 @@ async function fetchSubnets() {
 }
 
 function resolutionToSeconds(res) {
-  if (res === '1D') return 86400;
   if (res === '7D') return 7 * 86400;
-  if (res === '30D') return 30 * 86400;
+  if (res === '1D') return 86400;
   const n = parseInt(res, 10);
   return (isNaN(n) ? 60 : n) * 60;
 }
+
+const RES_LABELS = { '60': '1H', '240': '4H', '1D': '1D', '7D': '1W' };
 
 // ----- Render ---------------------------------------------------------------
 function clearRsiSegments() {
@@ -429,7 +439,7 @@ function renderRSI(times, rsiVals) {
     [30, 60].forEach(level => {
       rsiAnchor.createPriceLine({
         price: level,
-        color: 'rgba(255,255,255,0.3)',
+        color: 'rgba(255, 255, 255, 0.25)',
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: false,
@@ -440,8 +450,8 @@ function renderRSI(times, rsiVals) {
 }
 
 function resolutionLabel() {
-  const sel = document.getElementById('resolution');
-  return sel.options[sel.selectedIndex].textContent;
+  const val = document.getElementById('resolution').value;
+  return RES_LABELS[val] || val;
 }
 
 function updateHeaderLabel() {
@@ -525,17 +535,15 @@ async function loadAndRender() {
   wt2Series.setData(wt2Data);
   wtVwapSeries.setData(wtVwapData);
 
-  // MFI — compress into [-99, -95] band so it sits at the bottom of the WT
-  // panel without overlapping the WT lines. Centered at -97, amplitude ±2.
+  // MFI — natural (unscaled) values overlaid on the WT panel, centered at 0.
   const mfi = calcMFI(o, h, l, c, MFI_PERIOD, MFI_MULTIPLIER, MFI_POS_Y);
-  const maxAbsMfi = mfi.reduce((m, v) => isNaN(v) ? m : Math.max(m, Math.abs(v)), 0) || 1;
   const mfiData = t.map((ts, i) => {
     const v = mfi[i];
     if (isNaN(v)) return null;
     return {
       time: ts,
-      value: -97 + (v / maxAbsMfi) * 2,
-      color: v >= 0 ? '#3ee14588' : '#ff3d2e88',
+      value: v,
+      color: v >= 0 ? '#3ee14566' : '#ff3d2e66',
     };
   }).filter(Boolean);
   mfiSeries.setData(mfiData);
@@ -543,8 +551,8 @@ async function loadAndRender() {
   // Buy/Sell signals
   const signals = detectSignals(wt1, wt2);
   const markers = signals.map(s => s.type === 'buy'
-    ? { time: t[s.index], position: 'belowBar', color: '#3ee145', shape: 'arrowUp',   text: 'B' }
-    : { time: t[s.index], position: 'aboveBar', color: '#ef5350', shape: 'arrowDown', text: 'S' }
+    ? { time: t[s.index], position: 'belowBar', color: '#00e676', shape: 'circle', text: 'B', size: 0.8 }
+    : { time: t[s.index], position: 'aboveBar', color: '#ff5252', shape: 'circle', text: 'S', size: 0.8 }
   );
   setMarkers(wt2Series, markers);
 
